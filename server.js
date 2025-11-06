@@ -526,36 +526,159 @@
 
 
 
+// // server.js
+// import express from 'express';
+// import nodemailer from 'nodemailer';
+// import cors from 'cors';
+
+// const app = express();
+// const PORT = 5000;
+
+// // Middleware
+// app.use(cors());
+// app.use(express.json());
+
+// // Create a single reusable transporter for Gmail
+// const transporter = nodemailer.createTransport({
+//   service: 'gmail',
+//   auth: {
+//     user: 'padhyasoftseo@gmail.com', // Your Gmail
+//     pass: 'dqjclacxnzuvgeng',      // <-- Replace with Gmail App Password
+//   },
+// });
+
+// // Helper function to send email
+// const sendEmail = async ({ from, to, subject, html }) => {
+//   return transporter.sendMail({ from, to, subject, html });
+// };
+
+// // Unified route to handle all enquiries
+// app.post('/send-enquiry', async (req, res) => {
+//   try {
+//     const { fullName, email, phoneNumber, city, state, message, dealerType, companyName, contactPerson, businessEmail, mobileNumber, productName, quantity, additionalInfo } = req.body;
+
+//     // Determine type of enquiry
+//     let enquiryType = 'Support';
+//     if (productName) enquiryType = 'Product';
+//     else if (dealerType || companyName) enquiryType = 'Dealer/Distributor';
+
+//     // Build HTML dynamically for admin
+//     let htmlContent = `<h2>New ${enquiryType} Enquiry Details</h2><table border="1" cellpadding="5" cellspacing="0">`;
+//     Object.entries(req.body).forEach(([key, value]) => {
+//       htmlContent += `<tr><td><b>${key}:</b></td><td>${value}</td></tr>`;
+//     });
+//     htmlContent += '</table>';
+
+//     // Prepare emails
+//     const emailsToSend = [
+//       // Admin email
+//       sendEmail({
+//         from: `"${enquiryType} Enquiry" <${email || 'no-reply@padhyasoft.com'}>`,
+//         to: 'padhyasoftseo@gmail.com',
+//         subject: `New ${enquiryType} Enquiry from ${fullName || 'Website User'}`,
+//         html: htmlContent,
+//       }),
+//     ];
+
+//     // Thank-you email to user
+//     if (email) {
+//       let userSubject = 'Thank You for Contacting Padhyasoft!';
+//       let userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for reaching out to <b>Padhyasoft</b>.</p><p>We’ve received your enquiry and will get back to you soon.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
+
+//       if (productName) {
+//         userSubject = 'Thank You for Your Product Enquiry';
+//         userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for your product enquiry.</p><p>We will get back to you shortly.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
+//       }
+
+//       emailsToSend.push(
+//         sendEmail({
+//           from: '"Padhyasoft Team" <padhyasoftseo@gmail.com>',
+//           to: email,
+//           subject: userSubject,
+//           html: userHtml,
+//         })
+//       );
+//     }
+
+//     // Send all emails in parallel
+//     await Promise.all(emailsToSend);
+
+//     res.status(200).json({ success: true, message: 'Enquiry sent successfully!' });
+//   } catch (error) {
+//     console.error('Error sending enquiry:', error);
+//     res.status(500).json({ success: false, message: 'Failed to send enquiry' });
+//   }
+// });
+
+// // Start server
+// app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+
+
+
+
+
+
+// ====
+
+
+
+
+
 // server.js
 import express from 'express';
 import nodemailer from 'nodemailer';
 import cors from 'cors';
+import dotenv from 'dotenv';
+
+dotenv.config(); // Load environment variables
 
 const app = express();
-const PORT = 5000;
 
-// Middleware
-app.use(cors());
+// ✅ Use Render or .env PORT
+const PORT = process.env.PORT || 5000;
+
+// ✅ Middleware
+app.use(cors({
+  origin: ["http://localhost:3000", "https://eros.net.in", "https://eros-frontend.onrender.com"], // allowed domains
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json());
 
-// Create a single reusable transporter for Gmail
+// ✅ Nodemailer transporter (using .env credentials)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'padhyasoftseo@gmail.com', // Your Gmail
-    pass: 'dqjclacxnzuvgeng',      // <-- Replace with Gmail App Password
+    user: process.env.SENDER_EMAIL,
+    pass: process.env.SENDER_PASS,
   },
 });
 
-// Helper function to send email
+// ✅ Helper function to send email
 const sendEmail = async ({ from, to, subject, html }) => {
   return transporter.sendMail({ from, to, subject, html });
 };
 
-// Unified route to handle all enquiries
+// ✅ Unified route to handle all enquiries
 app.post('/send-enquiry', async (req, res) => {
   try {
-    const { fullName, email, phoneNumber, city, state, message, dealerType, companyName, contactPerson, businessEmail, mobileNumber, productName, quantity, additionalInfo } = req.body;
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      city,
+      state,
+      message,
+      dealerType,
+      companyName,
+      contactPerson,
+      businessEmail,
+      mobileNumber,
+      productName,
+      quantity,
+      additionalInfo
+    } = req.body;
 
     // Determine type of enquiry
     let enquiryType = 'Support';
@@ -574,7 +697,7 @@ app.post('/send-enquiry', async (req, res) => {
       // Admin email
       sendEmail({
         from: `"${enquiryType} Enquiry" <${email || 'no-reply@padhyasoft.com'}>`,
-        to: 'padhyasoftseo@gmail.com',
+        to: process.env.RECEIVER_EMAIL,
         subject: `New ${enquiryType} Enquiry from ${fullName || 'Website User'}`,
         html: htmlContent,
       }),
@@ -592,7 +715,7 @@ app.post('/send-enquiry', async (req, res) => {
 
       emailsToSend.push(
         sendEmail({
-          from: '"Padhyasoft Team" <padhyasoftseo@gmail.com>',
+          from: `"Padhyasoft Team" <${process.env.SENDER_EMAIL}>`,
           to: email,
           subject: userSubject,
           html: userHtml,
@@ -603,12 +726,17 @@ app.post('/send-enquiry', async (req, res) => {
     // Send all emails in parallel
     await Promise.all(emailsToSend);
 
-    res.status(200).json({ success: true, message: 'Enquiry sent successfully!' });
+    res.status(200).json({ success: true, message: '✅ Enquiry sent successfully!' });
   } catch (error) {
-    console.error('Error sending enquiry:', error);
+    console.error('❌ Error sending enquiry:', error);
     res.status(500).json({ success: false, message: 'Failed to send enquiry' });
   }
 });
 
-// Start server
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+// ✅ Test route
+app.get('/', (req, res) => {
+  res.send('Backend is running successfully 🚀');
+});
+
+// ✅ Start server
+app.listen(PORT, () => console.log(`✅ Server live on port ${PORT}`));
