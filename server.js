@@ -530,6 +530,25 @@
 // import express from 'express';
 // import nodemailer from 'nodemailer';
 // import cors from 'cors';
+// import mongoose from 'mongoose';
+
+
+
+
+// // Local MongoDB connection
+// const MONGO_URI = 'mongodb://127.0.0.1:27017/padhyasoft';
+
+// mongoose.connect(MONGO_URI, {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+// })
+// .then(() => console.log('✅ Connected to MongoDB Compass'))
+// .catch((err) => console.error('❌ MongoDB connection error:', err));
+
+
+
+
+
 
 // const app = express();
 // const PORT = 5000;
@@ -618,48 +637,94 @@
 
 
 
-// ====
+// // ====
 
 
 
-import express from "express";
-import nodemailer from "nodemailer";
-import cors from "cors";
-import dotenv from "dotenv";
 
-dotenv.config();
+
+
+// server.js
+import express from 'express';
+import nodemailer from 'nodemailer';
+import cors from 'cors';
+import mongoose from 'mongoose';
+// import Enquiry from './models/Enquiry.js'; 
+import Enquiry from './models/enquiryModel.js'; // Import schema
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 5000;
 
-// ✅ Step 1: Simple CORS setup for Render + localhost
-app.use(
-  cors({
-    origin: "*", // Allow all for now (you can restrict later)
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
-  })
-);
+// ===== CONNECT TO MONGODB (Compass local) =====
+const MONGO_URI = 'mongodb://127.0.0.1:27017/eros'; // <-- Your DB name is eros
 
-// ✅ Step 2: JSON middleware
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('✅ Connected to MongoDB (eros database)'))
+.catch((err) => console.error('❌ MongoDB connection error:', err));
+
+// ===== MIDDLEWARE =====
+app.use(cors());
 app.use(express.json());
 
-// ✅ Step 3: Transporter setup
+
+
+// 🧩 Route to Save Form Data in MongoDB
+app.post('/save-enquiry', async (req, res) => {
+  try {
+    const formData = req.body;
+
+    // Check if formType is sent
+    if (!formData.formType) {
+      return res.status(400).json({ error: 'Missing formType field' });
+    }
+
+    // Create a new document using the Mongoose Model
+    const newEnquiry = new Enquiry(formData);
+
+    // Save it to MongoDB
+    await newEnquiry.save();
+
+    console.log('✅ Data saved to MongoDB:', newEnquiry);
+
+    // Send success response to frontend
+    res.status(200).json({
+      success: true,
+      message: 'Enquiry saved successfully!',
+    });
+  } catch (error) {
+    console.error('❌ Error saving enquiry:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error saving data',
+    });
+  }
+});
+
+
+
+
+
+
+
+// ===== EMAIL TRANSPORTER (optional but working) =====
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  service: 'gmail',
   auth: {
-    user: process.env.SENDER_EMAIL,
-    pass: process.env.SENDER_PASS,
+    user: 'padhyasoftseo@gmail.com',
+    pass: 'dqjclacxnzuvgeng', // Gmail App Password
   },
 });
 
-// ✅ Step 4: Mail sender helper
+// ===== EMAIL HELPER FUNCTION =====
 const sendEmail = async ({ from, to, subject, html }) => {
   return transporter.sendMail({ from, to, subject, html });
 };
 
-// ✅ Step 5: Enquiry route
-app.post("/send-enquiry", async (req, res) => {
+// ===== MAIN ROUTE - HANDLE ALL ENQUIRIES =====
+app.post('/send-enquiry', async (req, res) => {
   try {
     const {
       fullName,
@@ -678,54 +743,72 @@ app.post("/send-enquiry", async (req, res) => {
       additionalInfo,
     } = req.body;
 
-    let enquiryType = "Support";
-    if (productName) enquiryType = "Product";
-    else if (dealerType || companyName) enquiryType = "Dealer/Distributor";
+    // Detect enquiry type
+    let enquiryType = 'Support';
+    if (productName) enquiryType = 'Product';
+    else if (dealerType || companyName) enquiryType = 'Dealer/Distributor';
 
+    // ====== SAVE DATA TO DATABASE ======
+    const newEnquiry = new Enquiry({
+      ...req.body,
+      enquiryType,
+    });
+
+    await newEnquiry.save(); // Save to MongoDB (eros > enquiries)
+    console.log('✅ Enquiry saved to MongoDB:', newEnquiry._id);
+
+    // ====== BUILD EMAIL CONTENT ======
     let htmlContent = `<h2>New ${enquiryType} Enquiry Details</h2><table border="1" cellpadding="5" cellspacing="0">`;
     Object.entries(req.body).forEach(([key, value]) => {
       htmlContent += `<tr><td><b>${key}:</b></td><td>${value}</td></tr>`;
     });
-    htmlContent += "</table>";
+    htmlContent += '</table>';
 
+    // ====== PREPARE EMAILS ======
     const emailsToSend = [
       sendEmail({
-        from: `"${enquiryType} Enquiry" <${email || "no-reply@eros.net.in"}>`,
-        to: process.env.RECEIVER_EMAIL,
-        subject: `New ${enquiryType} Enquiry from ${fullName || "Website User"}`,
+        from: `"${enquiryType} Enquiry" <${email || 'no-reply@padhyasoft.com'}>`,
+        to: 'padhyasoftseo@gmail.com',
+        subject: `New ${enquiryType} Enquiry from ${fullName || 'Website User'}`,
         html: htmlContent,
       }),
     ];
 
+    // ====== THANK-YOU EMAIL TO USER ======
     if (email) {
+      let userSubject = 'Thank You for Contacting Padhyasoft!';
+      let userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for reaching out to <b>Padhyasoft</b>.</p><p>We’ve received your enquiry and will get back to you soon.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
+
+      if (productName) {
+        userSubject = 'Thank You for Your Product Enquiry';
+        userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for your product enquiry.</p><p>We will get back to you shortly.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
+      }
+
       emailsToSend.push(
         sendEmail({
-          from: `"Eros Team" <${process.env.SENDER_EMAIL}>`,
+          from: '"Padhyasoft Team" <padhyasoftseo@gmail.com>',
           to: email,
-          subject: "Thank You for Contacting Eros!",
-          html: `<h3>Hi ${fullName || ""},</h3>
-          <p>Thank you for reaching out to <b>Eros</b>.</p>
-          <p>We’ve received your enquiry and will get back to you soon.</p>
-          <br/><p>Best regards,<br><b>Eros Team</b></p>`,
+          subject: userSubject,
+          html: userHtml,
         })
       );
     }
 
+    // Send all emails
     await Promise.all(emailsToSend);
 
-    res.status(200).json({ success: true, message: "Enquiry sent successfully!" });
+    res.status(200).json({
+      success: true,
+      message: 'Enquiry sent and saved successfully!',
+    });
   } catch (error) {
-    console.error("Error sending enquiry:", error);
-    res.status(500).json({ success: false, message: "Failed to send enquiry" });
+    console.error('Error sending enquiry:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send and save enquiry',
+    });
   }
 });
 
-// ✅ Step 6: Root route
-app.get("/", (req, res) => {
-  res.send("✅ Eros Backend is Running Successfully!");
-});
-
-// ✅ Step 7: Start server
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+// ===== START SERVER =====
+app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
