@@ -622,62 +622,44 @@
 
 
 
-
-// server.js
-import express from 'express';
-import nodemailer from 'nodemailer';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import express from "express";
+import nodemailer from "nodemailer";
+import cors from "cors";
+import dotenv from "dotenv";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ CORS setup (allow localhost + your live site + Render frontend)
-const allowedOrigins = [
-  'http://localhost:5173',                // Vite local frontend
-  'http://localhost:3000',                // CRA local frontend
-  'https://eros.net.in',                  // Your live website domain
-  'https://eros-frontend.onrender.com'    // Your frontend if hosted on Render
-];
+// ✅ Step 1: Simple CORS setup for Render + localhost
+app.use(
+  cors({
+    origin: "*", // Allow all for now (you can restrict later)
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
 
-// ✅ CORS middleware configuration
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (!allowedOrigins.includes(origin)) {
-      return callback(new Error(`🚫 CORS Error: Not allowed origin -> ${origin}`));
-    }
-    return callback(null, true);
-  },
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
-  credentials: true,
-}));
-
-// ✅ Handle CORS preflight requests
-app.options('*', cors());
-
-// ✅ Middleware
+// ✅ Step 2: JSON middleware
 app.use(express.json());
 
-// ✅ Setup mail transporter (using Gmail App Password)
+// ✅ Step 3: Transporter setup
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: process.env.SENDER_EMAIL,
     pass: process.env.SENDER_PASS,
   },
 });
 
-// ✅ Helper function to send emails
+// ✅ Step 4: Mail sender helper
 const sendEmail = async ({ from, to, subject, html }) => {
   return transporter.sendMail({ from, to, subject, html });
 };
 
-// ✅ Main route for all enquiries
-app.post('/send-enquiry', async (req, res) => {
+// ✅ Step 5: Enquiry route
+app.post("/send-enquiry", async (req, res) => {
   try {
     const {
       fullName,
@@ -693,72 +675,57 @@ app.post('/send-enquiry', async (req, res) => {
       mobileNumber,
       productName,
       quantity,
-      additionalInfo
+      additionalInfo,
     } = req.body;
 
-    // Determine type of enquiry
-    let enquiryType = 'Support';
-    if (productName) enquiryType = 'Product';
-    else if (dealerType || companyName) enquiryType = 'Dealer/Distributor';
+    let enquiryType = "Support";
+    if (productName) enquiryType = "Product";
+    else if (dealerType || companyName) enquiryType = "Dealer/Distributor";
 
-    // Build HTML for admin
     let htmlContent = `<h2>New ${enquiryType} Enquiry Details</h2><table border="1" cellpadding="5" cellspacing="0">`;
     Object.entries(req.body).forEach(([key, value]) => {
       htmlContent += `<tr><td><b>${key}:</b></td><td>${value}</td></tr>`;
     });
-    htmlContent += '</table>';
+    htmlContent += "</table>";
 
-    // Emails to send
     const emailsToSend = [
-      // Admin notification email
       sendEmail({
-        from: `"${enquiryType} Enquiry" <${email || 'no-reply@eros.net.in'}>`,
+        from: `"${enquiryType} Enquiry" <${email || "no-reply@eros.net.in"}>`,
         to: process.env.RECEIVER_EMAIL,
-        subject: `New ${enquiryType} Enquiry from ${fullName || 'Website User'}`,
+        subject: `New ${enquiryType} Enquiry from ${fullName || "Website User"}`,
         html: htmlContent,
       }),
     ];
 
-    // Send Thank-you mail to user
     if (email) {
-      let userSubject = 'Thank You for Contacting Eros!';
-      let userHtml = `<h3>Hi ${fullName || ''},</h3>
-        <p>Thank you for reaching out to <b>Eros</b>.</p>
-        <p>We’ve received your enquiry and will get back to you soon.</p>
-        <br/><p>Best regards,<br><b>Eros Team</b></p>`;
-
-      if (productName) {
-        userSubject = 'Thank You for Your Product Enquiry';
-        userHtml = `<h3>Hi ${fullName || ''},</h3>
-          <p>Thank you for your product enquiry.</p>
-          <p>We will get back to you shortly.</p>
-          <br/><p>Best regards,<br><b>Eros Team</b></p>`;
-      }
-
       emailsToSend.push(
         sendEmail({
           from: `"Eros Team" <${process.env.SENDER_EMAIL}>`,
           to: email,
-          subject: userSubject,
-          html: userHtml,
+          subject: "Thank You for Contacting Eros!",
+          html: `<h3>Hi ${fullName || ""},</h3>
+          <p>Thank you for reaching out to <b>Eros</b>.</p>
+          <p>We’ve received your enquiry and will get back to you soon.</p>
+          <br/><p>Best regards,<br><b>Eros Team</b></p>`,
         })
       );
     }
 
-    // Send all emails in parallel
     await Promise.all(emailsToSend);
 
-    res.status(200).json({ success: true, message: 'Enquiry sent successfully!' });
+    res.status(200).json({ success: true, message: "Enquiry sent successfully!" });
   } catch (error) {
-    console.error('Error sending enquiry:', error);
-    res.status(500).json({ success: false, message: 'Failed to send enquiry' });
+    console.error("Error sending enquiry:", error);
+    res.status(500).json({ success: false, message: "Failed to send enquiry" });
   }
 });
 
-// ✅ Root test route
-app.get('/', (req, res) => {
-  res.send('✅ Eros Backend is Running Successfully!');
+// ✅ Step 6: Root route
+app.get("/", (req, res) => {
+  res.send("✅ Eros Backend is Running Successfully!");
 });
 
-// ✅ Start server
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// ✅ Step 7: Start server
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
