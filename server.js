@@ -656,7 +656,8 @@ const app = express();
 const PORT = 5000;
 
 // ===== CONNECT TO MONGODB (Compass local) =====
-const MONGO_URI = 'mongodb://127.0.0.1:27017/eros'; // <-- Your DB name is eros
+// const MONGO_URI = 'mongodb://127.0.0.1:27017/eros'; // <-- Your DB name is eros
+const MONGO_URI='mongodb+srv://parmaranjali0703_db_user:XZ6md9SfIvxBP8nb@cluster0.xj5asii.mongodb.net/';
 
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
