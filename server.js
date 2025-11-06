@@ -642,55 +642,51 @@
 
 
 
-
-
 // server.js
 import express from 'express';
 import nodemailer from 'nodemailer';
 import cors from 'cors';
 import mongoose from 'mongoose';
-// import Enquiry from './models/Enquiry.js'; 
-import Enquiry from './models/enquiryModel.js'; // Import schema
+import dotenv from 'dotenv';
+import Enquiry from './models/enquiryModel.js'; // Import Mongoose schema
 
+// ===== CONFIGURATION =====
+dotenv.config();
 const app = express();
-const PORT = 5000;
-
-// ===== CONNECT TO MONGODB (Compass local) =====
-// const MONGO_URI = 'mongodb://127.0.0.1:27017/eros'; // <-- Your DB name is eros
-const MONGO_URI='mongodb+srv://parmaranjali0703_db_user:XZ6md9SfIvxBP8nb@cluster0.xj5asii.mongodb.net/';
-
-mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('✅ Connected to MongoDB (eros database)'))
-.catch((err) => console.error('❌ MongoDB connection error:', err));
+const PORT = process.env.PORT || 5000;
 
 // ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json());
 
+// ===== CONNECT TO MONGODB ATLAS =====
+const MONGO_URI = process.env.MONGO_URI;
 
+mongoose
+  .connect(MONGO_URI)
+  .then(() => console.log('✅ Connected to MongoDB Atlas (ErosDB)'))
+  .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-// 🧩 Route to Save Form Data in MongoDB
+// ===== TEST ROUTE =====
+app.get('/', (req, res) => {
+  res.send('🚀 Eros Backend is running and connected to MongoDB Atlas!');
+});
+
+// ===== ROUTE: SAVE FORM DATA TO MONGODB =====
 app.post('/save-enquiry', async (req, res) => {
   try {
     const formData = req.body;
 
-    // Check if formType is sent
+    // Validation: formType must be present
     if (!formData.formType) {
       return res.status(400).json({ error: 'Missing formType field' });
     }
 
-    // Create a new document using the Mongoose Model
     const newEnquiry = new Enquiry(formData);
-
-    // Save it to MongoDB
     await newEnquiry.save();
 
-    console.log('✅ Data saved to MongoDB:', newEnquiry);
+    console.log('✅ Enquiry saved to MongoDB Atlas:', newEnquiry._id);
 
-    // Send success response to frontend
     res.status(200).json({
       success: true,
       message: 'Enquiry saved successfully!',
@@ -704,27 +700,21 @@ app.post('/save-enquiry', async (req, res) => {
   }
 });
 
-
-
-
-
-
-
-// ===== EMAIL TRANSPORTER (optional but working) =====
+// ===== EMAIL TRANSPORTER (Gmail SMTP) =====
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: 'padhyasoftseo@gmail.com',
-    pass: 'dqjclacxnzuvgeng', // Gmail App Password
+    pass: 'dqjclacxnzuvgeng', // Gmail App Password (not your normal Gmail password)
   },
 });
 
-// ===== EMAIL HELPER FUNCTION =====
+// ===== EMAIL FUNCTION =====
 const sendEmail = async ({ from, to, subject, html }) => {
   return transporter.sendMail({ from, to, subject, html });
 };
 
-// ===== MAIN ROUTE - HANDLE ALL ENQUIRIES =====
+// ===== MAIN ROUTE: HANDLE ENQUIRIES + EMAIL NOTIFICATION =====
 app.post('/send-enquiry', async (req, res) => {
   try {
     const {
@@ -744,7 +734,7 @@ app.post('/send-enquiry', async (req, res) => {
       additionalInfo,
     } = req.body;
 
-    // Detect enquiry type
+    // Detect Enquiry Type
     let enquiryType = 'Support';
     if (productName) enquiryType = 'Product';
     else if (dealerType || companyName) enquiryType = 'Dealer/Distributor';
@@ -754,18 +744,19 @@ app.post('/send-enquiry', async (req, res) => {
       ...req.body,
       enquiryType,
     });
+    await newEnquiry.save();
 
-    await newEnquiry.save(); // Save to MongoDB (eros > enquiries)
-    console.log('✅ Enquiry saved to MongoDB:', newEnquiry._id);
+    console.log('✅ Enquiry saved to MongoDB Atlas:', newEnquiry._id);
 
     // ====== BUILD EMAIL CONTENT ======
-    let htmlContent = `<h2>New ${enquiryType} Enquiry Details</h2><table border="1" cellpadding="5" cellspacing="0">`;
+    let htmlContent = `<h2>New ${enquiryType} Enquiry Details</h2>
+    <table border="1" cellpadding="5" cellspacing="0">`;
     Object.entries(req.body).forEach(([key, value]) => {
       htmlContent += `<tr><td><b>${key}:</b></td><td>${value}</td></tr>`;
     });
     htmlContent += '</table>';
 
-    // ====== PREPARE EMAILS ======
+    // ====== SEND EMAIL TO COMPANY ======
     const emailsToSend = [
       sendEmail({
         from: `"${enquiryType} Enquiry" <${email || 'no-reply@padhyasoft.com'}>`,
@@ -778,11 +769,17 @@ app.post('/send-enquiry', async (req, res) => {
     // ====== THANK-YOU EMAIL TO USER ======
     if (email) {
       let userSubject = 'Thank You for Contacting Padhyasoft!';
-      let userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for reaching out to <b>Padhyasoft</b>.</p><p>We’ve received your enquiry and will get back to you soon.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
+      let userHtml = `<h3>Hi ${fullName || ''},</h3>
+      <p>Thank you for reaching out to <b>Padhyasoft</b>.</p>
+      <p>We’ve received your enquiry and will get back to you soon.</p>
+      <br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
 
       if (productName) {
         userSubject = 'Thank You for Your Product Enquiry';
-        userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for your product enquiry.</p><p>We will get back to you shortly.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
+        userHtml = `<h3>Hi ${fullName || ''},</h3>
+        <p>Thank you for your product enquiry.</p>
+        <p>We will get back to you shortly.</p>
+        <br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
       }
 
       emailsToSend.push(
@@ -795,15 +792,14 @@ app.post('/send-enquiry', async (req, res) => {
       );
     }
 
-    // Send all emails
     await Promise.all(emailsToSend);
 
     res.status(200).json({
       success: true,
-      message: 'Enquiry sent and saved successfully!',
+      message: '✅ Enquiry sent & saved successfully!',
     });
   } catch (error) {
-    console.error('Error sending enquiry:', error);
+    console.error('❌ Error sending enquiry:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to send and save enquiry',
@@ -812,4 +808,6 @@ app.post('/send-enquiry', async (req, res) => {
 });
 
 // ===== START SERVER =====
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🚀 Server running on http://localhost:${PORT}`)
+);
