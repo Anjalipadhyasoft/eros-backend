@@ -660,8 +660,9 @@ app.use(cors());
 app.use(express.json());
 
 // ===== CONNECT TO MONGODB ATLAS =====
+// const MONGO_URI = process.env.MONGO_URI;
 const MONGO_URI = process.env.MONGO_URI;
-
+    console.log("Mongo URI:", MONGO_URI);
 mongoose
   .connect(MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB Atlas (ErosDB)'))
@@ -675,6 +676,7 @@ app.get('/', (req, res) => {
 // ===== ROUTE: SAVE FORM DATA TO MONGODB =====
 app.post('/save-enquiry', async (req, res) => {
   try {
+     console.log("Frontend se ye data aa raha hai:", req.body);
     const formData = req.body;
 
     // Validation: formType must be present
