@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
-
+//import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 const enquirySchema = new mongoose.Schema(
   {
     // Common fields
@@ -64,4 +64,4 @@ const enquirySchema = new mongoose.Schema(
 );
 
 const Enquiry = mongoose.model('Enquiry', enquirySchema);
-export default Enquiry;
+module.exports = Enquiry;
