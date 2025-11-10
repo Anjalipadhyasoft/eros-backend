@@ -523,114 +523,229 @@
 
 
 // ==================================================================================================
+// ========================================================================================
+// ========================================================================================
 
+
+
+// // server.js
+// import express from 'express';
+// import nodemailer from 'nodemailer';
+// import cors from 'cors';
+// import mongoose from 'mongoose';
+
+
+
+
+// // Local MongoDB connection
+// const MONGO_URI = 'mongodb+srv://admin:admin@taskmanager.yfkarmd.mongodb.net/?appName=TaskManager';
+
+// mongoose.connect(MONGO_URI, {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+// })
+// .then(() => console.log('✅ Connected to MongoDB Compass'))
+// .catch((err) => console.error('❌ MongoDB connection error:', err));
+
+
+
+
+
+
+// const app = express();
+// const PORT = 5000;
+
+// // Middleware
+// app.use(cors());
+// app.use(express.json());
+
+// // Create a single reusable transporter for Gmail
+// const transporter = nodemailer.createTransport({
+//   service: 'gmail',
+//   auth: {
+//     user: 'anjalichasee@gmail.com', // Your Gmail
+//     pass: 'oudx zpoq woew bxlz',      // <-- Replace with Gmail App Password
+//   },
+// });
+
+// // Helper function to send email
+// const sendEmail = async ({ from, to, subject, html }) => {
+//   return transporter.sendMail({ from, to, subject, html });
+// };
+
+// // Unified route to handle all enquiries
+// app.post('/send-enquiry', async (req, res) => {
+//   try {
+//     const { fullName, email, phoneNumber, city, state, message, dealerType, companyName, contactPerson, businessEmail, mobileNumber, productName, quantity, additionalInfo } = req.body;
+
+//     // Determine type of enquiry
+//     let enquiryType = 'Support';
+//     if (productName) enquiryType = 'Product';
+//     else if (dealerType || companyName) enquiryType = 'Dealer/Distributor';
+
+//     // Build HTML dynamically for admin
+//     let htmlContent = `<h2>New ${enquiryType} Enquiry Details</h2><table border="1" cellpadding="5" cellspacing="0">`;
+//     Object.entries(req.body).forEach(([key, value]) => {
+//       htmlContent += `<tr><td><b>${key}:</b></td><td>${value}</td></tr>`;
+//     });
+//     htmlContent += '</table>';
+
+//     // Prepare emails
+//     const emailsToSend = [
+//       // Admin email
+//       sendEmail({
+//         from: `"${enquiryType} Enquiry" <${email || 'no-reply@padhyasoft.com'}>`,
+//         to: 'anjalichasee@gmail.com',
+//         subject: `New ${enquiryType} Enquiry from ${fullName || 'Website User'}`,
+//         html: htmlContent,
+//       }),
+//     ];
+
+//     // Thank-you email to user
+//     if (email) {
+//       let userSubject = 'Thank You for Contacting Padhyasoft!';
+//       let userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for reaching out to <b>Padhyasoft</b>.</p><p>We’ve received your enquiry and will get back to you soon.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
+
+//       if (productName) {
+//         userSubject = 'Thank You for Your Product Enquiry';
+//         userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for your product enquiry.</p><p>We will get back to you shortly.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
+//       }
+
+//       emailsToSend.push(
+//         sendEmail({
+//           from: '"Padhyasoft Team" <anjalichasee@gmail.com>',
+//           to: email,
+//           subject: userSubject,
+//           html: userHtml,
+//         })
+//       );
+//     }
+
+//     // Send all emails in parallel
+//     await Promise.all(emailsToSend);
+
+//     res.status(200).json({ success: true, message: 'Enquiry sent successfully!' });
+//   } catch (error) {
+//     console.error('Error sending enquiry:', error);
+//     res.status(500).json({ success: false, message: 'Failed to send enquiry' });
+//   }
+// });
+
+// // Start server
+// app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+
+// ========================================================================================
+// ========================================================================================
 
 
 // server.js
-import express from 'express';
-import nodemailer from 'nodemailer';
-import cors from 'cors';
-import mongoose from 'mongoose';
+import express from "express";
+import cors from "cors";
+import nodemailer from "nodemailer";
+import fetch from "node-fetch";
+import dotenv from "dotenv";
 
-
-
-
-// Local MongoDB connection
-const MONGO_URI = 'mongodb+srv://admin:admin@taskmanager.yfkarmd.mongodb.net/?appName=TaskManager';
-
-mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('✅ Connected to MongoDB Compass'))
-.catch((err) => console.error('❌ MongoDB connection error:', err));
-
-
-
-
-
+dotenv.config();
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
-// Middleware
+// ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json());
 
-// Create a single reusable transporter for Gmail
+// ===== EMAIL SETUP (optional) =====
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
-    user: 'anjalichasee@gmail.com', // Your Gmail
-    pass: 'oudx zpoq woew bxlz',      // <-- Replace with Gmail App Password
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
   },
 });
 
-// Helper function to send email
 const sendEmail = async ({ from, to, subject, html }) => {
   return transporter.sendMail({ from, to, subject, html });
 };
 
-// Unified route to handle all enquiries
-app.post('/send-enquiry', async (req, res) => {
+// ===== API ROUTE (Call .NET API) =====
+app.post("/send-enquiry", async (req, res) => {
   try {
-    const { fullName, email, phoneNumber, city, state, message, dealerType, companyName, contactPerson, businessEmail, mobileNumber, productName, quantity, additionalInfo } = req.body;
+    const payload = req.body;
 
-    // Determine type of enquiry
-    let enquiryType = 'Support';
-    if (productName) enquiryType = 'Product';
-    else if (dealerType || companyName) enquiryType = 'Dealer/Distributor';
-
-    // Build HTML dynamically for admin
-    let htmlContent = `<h2>New ${enquiryType} Enquiry Details</h2><table border="1" cellpadding="5" cellspacing="0">`;
-    Object.entries(req.body).forEach(([key, value]) => {
-      htmlContent += `<tr><td><b>${key}:</b></td><td>${value}</td></tr>`;
+    // 🔹 Send data to your .NET API
+    const response = await fetch("https://erosapi.padhyasoft.com/api/CustomerSupport/Add", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "*/*",
+      },
+      body: JSON.stringify(payload),
     });
-    htmlContent += '</table>';
 
-    // Prepare emails
-    const emailsToSend = [
-      // Admin email
-      sendEmail({
-        from: `"${enquiryType} Enquiry" <${email || 'no-reply@padhyasoft.com'}>`,
-        to: 'anjalichasee@gmail.com',
-        subject: `New ${enquiryType} Enquiry from ${fullName || 'Website User'}`,
-        html: htmlContent,
-      }),
-    ];
+    const result = await response.json();
 
-    // Thank-you email to user
-    if (email) {
-      let userSubject = 'Thank You for Contacting Padhyasoft!';
-      let userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for reaching out to <b>Padhyasoft</b>.</p><p>We’ve received your enquiry and will get back to you soon.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
-
-      if (productName) {
-        userSubject = 'Thank You for Your Product Enquiry';
-        userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for your product enquiry.</p><p>We will get back to you shortly.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
-      }
-
-      emailsToSend.push(
-        sendEmail({
-          from: '"Padhyasoft Team" <anjalichasee@gmail.com>',
-          to: email,
-          subject: userSubject,
-          html: userHtml,
-        })
-      );
+    // 🔹 Send thank-you email (optional)
+    if (payload.email) {
+      await sendEmail({
+        from: `"Padhyasoft Team" <${process.env.SMTP_USER}>`,
+        to: payload.email,
+        subject: "Thank you for contacting us!",
+        html: `<h3>Hi ${payload.fullName || "User"},</h3>
+               <p>We’ve received your enquiry. Our team will reach out soon.</p>
+               <p>Regards,<br/><b>Padhyasoft Team</b></p>`,
+      });
     }
 
-    // Send all emails in parallel
-    await Promise.all(emailsToSend);
-
-    res.status(200).json({ success: true, message: 'Enquiry sent successfully!' });
+    // ✅ Return .NET API response
+    res.status(200).json({
+      success: true,
+      message: "Data sent to .NET API successfully!",
+      result,
+    });
   } catch (error) {
-    console.error('Error sending enquiry:', error);
-    res.status(500).json({ success: false, message: 'Failed to send enquiry' });
+    console.error("❌ Error sending enquiry:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to send enquiry",
+      error: error.message,
+    });
   }
 });
 
-// Start server
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+// ===== START SERVER =====
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
+
+
+
+
+
+
+
+
+
+
+// ========================================================================================
+// ========================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
