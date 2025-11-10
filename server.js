@@ -526,111 +526,111 @@
 
 
 
-// // server.js
-// import express from 'express';
-// import nodemailer from 'nodemailer';
-// import cors from 'cors';
-// import mongoose from 'mongoose';
+// server.js
+import express from 'express';
+import nodemailer from 'nodemailer';
+import cors from 'cors';
+import mongoose from 'mongoose';
 
 
 
 
-// // Local MongoDB connection
-// const MONGO_URI = 'mongodb://127.0.0.1:27017/padhyasoft';
+// Local MongoDB connection
+const MONGO_URI = 'mongodb+srv://admin:admin@taskmanager.yfkarmd.mongodb.net/?appName=TaskManager';
 
-// mongoose.connect(MONGO_URI, {
-//   useNewUrlParser: true,
-//   useUnifiedTopology: true,
-// })
-// .then(() => console.log('✅ Connected to MongoDB Compass'))
-// .catch((err) => console.error('❌ MongoDB connection error:', err));
-
-
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('✅ Connected to MongoDB Compass'))
+.catch((err) => console.error('❌ MongoDB connection error:', err));
 
 
 
 
-// const app = express();
-// const PORT = 5000;
 
-// // Middleware
-// app.use(cors());
-// app.use(express.json());
 
-// // Create a single reusable transporter for Gmail
-// const transporter = nodemailer.createTransport({
-//   service: 'gmail',
-//   auth: {
-//     user: 'padhyasoftseo@gmail.com', // Your Gmail
-//     pass: 'dqjclacxnzuvgeng',      // <-- Replace with Gmail App Password
-//   },
-// });
+const app = express();
+const PORT = 5000;
 
-// // Helper function to send email
-// const sendEmail = async ({ from, to, subject, html }) => {
-//   return transporter.sendMail({ from, to, subject, html });
-// };
+// Middleware
+app.use(cors());
+app.use(express.json());
 
-// // Unified route to handle all enquiries
-// app.post('/send-enquiry', async (req, res) => {
-//   try {
-//     const { fullName, email, phoneNumber, city, state, message, dealerType, companyName, contactPerson, businessEmail, mobileNumber, productName, quantity, additionalInfo } = req.body;
+// Create a single reusable transporter for Gmail
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'anjalichasee@gmail.com', // Your Gmail
+    pass: 'oudx zpoq woew bxlz',      // <-- Replace with Gmail App Password
+  },
+});
 
-//     // Determine type of enquiry
-//     let enquiryType = 'Support';
-//     if (productName) enquiryType = 'Product';
-//     else if (dealerType || companyName) enquiryType = 'Dealer/Distributor';
+// Helper function to send email
+const sendEmail = async ({ from, to, subject, html }) => {
+  return transporter.sendMail({ from, to, subject, html });
+};
 
-//     // Build HTML dynamically for admin
-//     let htmlContent = `<h2>New ${enquiryType} Enquiry Details</h2><table border="1" cellpadding="5" cellspacing="0">`;
-//     Object.entries(req.body).forEach(([key, value]) => {
-//       htmlContent += `<tr><td><b>${key}:</b></td><td>${value}</td></tr>`;
-//     });
-//     htmlContent += '</table>';
+// Unified route to handle all enquiries
+app.post('/send-enquiry', async (req, res) => {
+  try {
+    const { fullName, email, phoneNumber, city, state, message, dealerType, companyName, contactPerson, businessEmail, mobileNumber, productName, quantity, additionalInfo } = req.body;
 
-//     // Prepare emails
-//     const emailsToSend = [
-//       // Admin email
-//       sendEmail({
-//         from: `"${enquiryType} Enquiry" <${email || 'no-reply@padhyasoft.com'}>`,
-//         to: 'padhyasoftseo@gmail.com',
-//         subject: `New ${enquiryType} Enquiry from ${fullName || 'Website User'}`,
-//         html: htmlContent,
-//       }),
-//     ];
+    // Determine type of enquiry
+    let enquiryType = 'Support';
+    if (productName) enquiryType = 'Product';
+    else if (dealerType || companyName) enquiryType = 'Dealer/Distributor';
 
-//     // Thank-you email to user
-//     if (email) {
-//       let userSubject = 'Thank You for Contacting Padhyasoft!';
-//       let userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for reaching out to <b>Padhyasoft</b>.</p><p>We’ve received your enquiry and will get back to you soon.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
+    // Build HTML dynamically for admin
+    let htmlContent = `<h2>New ${enquiryType} Enquiry Details</h2><table border="1" cellpadding="5" cellspacing="0">`;
+    Object.entries(req.body).forEach(([key, value]) => {
+      htmlContent += `<tr><td><b>${key}:</b></td><td>${value}</td></tr>`;
+    });
+    htmlContent += '</table>';
 
-//       if (productName) {
-//         userSubject = 'Thank You for Your Product Enquiry';
-//         userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for your product enquiry.</p><p>We will get back to you shortly.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
-//       }
+    // Prepare emails
+    const emailsToSend = [
+      // Admin email
+      sendEmail({
+        from: `"${enquiryType} Enquiry" <${email || 'no-reply@padhyasoft.com'}>`,
+        to: 'anjalichasee@gmail.com',
+        subject: `New ${enquiryType} Enquiry from ${fullName || 'Website User'}`,
+        html: htmlContent,
+      }),
+    ];
 
-//       emailsToSend.push(
-//         sendEmail({
-//           from: '"Padhyasoft Team" <padhyasoftseo@gmail.com>',
-//           to: email,
-//           subject: userSubject,
-//           html: userHtml,
-//         })
-//       );
-//     }
+    // Thank-you email to user
+    if (email) {
+      let userSubject = 'Thank You for Contacting Padhyasoft!';
+      let userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for reaching out to <b>Padhyasoft</b>.</p><p>We’ve received your enquiry and will get back to you soon.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
 
-//     // Send all emails in parallel
-//     await Promise.all(emailsToSend);
+      if (productName) {
+        userSubject = 'Thank You for Your Product Enquiry';
+        userHtml = `<h3>Hi ${fullName || ''},</h3><p>Thank you for your product enquiry.</p><p>We will get back to you shortly.</p><br/><p>Best regards,<br><b>Padhyasoft Team</b></p>`;
+      }
 
-//     res.status(200).json({ success: true, message: 'Enquiry sent successfully!' });
-//   } catch (error) {
-//     console.error('Error sending enquiry:', error);
-//     res.status(500).json({ success: false, message: 'Failed to send enquiry' });
-//   }
-// });
+      emailsToSend.push(
+        sendEmail({
+          from: '"Padhyasoft Team" <anjalichasee@gmail.com>',
+          to: email,
+          subject: userSubject,
+          html: userHtml,
+        })
+      );
+    }
 
-// // Start server
-// app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+    // Send all emails in parallel
+    await Promise.all(emailsToSend);
+
+    res.status(200).json({ success: true, message: 'Enquiry sent successfully!' });
+  } catch (error) {
+    console.error('Error sending enquiry:', error);
+    res.status(500).json({ success: false, message: 'Failed to send enquiry' });
+  }
+});
+
+// Start server
+app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
 
 
 
@@ -642,47 +642,51 @@
 
 
 
-// server.js - Main Entry Point
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose');
-require('dotenv').config();
 
-// Import configurations and utilities
-const connectDatabase = require('./config/database');
-const { initializeEmailService } = require('./utils/emailService');
 
-// Import routes
-const enquiryRoutes = require('./routes/enquiryRoutes');
 
-// Initialize Express app
-const app = express();
-const PORT = process.env.PORT || 5000;
 
-// ===== MIDDLEWARE =====
-app.use(cors());
-app.use(express.json());
+// // server.js - Main Entry Point
+// const express = require('express');
+// const cors = require('cors');
+// const mongoose = require('mongoose');
+// require('dotenv').config();
 
-// ===== CONNECT TO DATABASE =====
-connectDatabase();
+// // Import configurations and utilities
+// const connectDatabase = require('./config/database');
+// const { initializeEmailService } = require('./utils/emailService');
 
-// ===== INITIALIZE EMAIL SERVICE =====
-initializeEmailService();
+// // Import routes
+// const enquiryRoutes = require('./routes/enquiryRoutes');
 
-// ===== HEALTH CHECK ROUTE =====
-app.get('/', (req, res) => {
-  const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
-  res.json({
-    status: 'Server is running',
-    database: dbStatus,
-    timestamp: new Date().toISOString(),
-  });
-});
+// // Initialize Express app
+// const app = express();
+// const PORT = process.env.PORT || 5000;
 
-// ===== API ROUTES =====
-app.use('/', enquiryRoutes);
+// // ===== MIDDLEWARE =====
+// app.use(cors());
+// app.use(express.json());
 
-// ===== START SERVER =====
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
-);
+// // ===== CONNECT TO DATABASE =====
+// connectDatabase();
+
+// // ===== INITIALIZE EMAIL SERVICE =====
+// initializeEmailService();
+
+// // ===== HEALTH CHECK ROUTE =====
+// app.get('/', (req, res) => {
+//   const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
+//   res.json({
+//     status: 'Server is running',
+//     database: dbStatus,
+//     timestamp: new Date().toISOString(),
+//   });
+// });
+
+// // ===== API ROUTES =====
+// app.use('/', enquiryRoutes);
+
+// // ===== START SERVER =====
+// app.listen(PORT, () =>
+//   console.log(`🚀 Server running on http://localhost:${PORT}`)
+// );

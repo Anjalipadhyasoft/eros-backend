@@ -25,7 +25,7 @@ const saveEnquiry = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Enquiry saved successfully!',
+      message: 'Enquiry saved successfully! saveEnquiry',
     });
   } catch (error) {
     console.error('❌ Error saving enquiry:', error);
@@ -102,7 +102,7 @@ const submitEnquiry = async (req, res) => {
         }
 
         await Promise.all(emailsToSend);
-        console.log('✅ Emails sent successfully');
+        console.log('✅ Emails sent successfully submitEnquiry');
       } catch (emailError) {
         console.error('⚠️ Email sending failed (but data saved):', emailError.message);
       }
